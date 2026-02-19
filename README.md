@@ -262,22 +262,15 @@ docker compose logs -f analytics_service
 
 ---
 
-### 08 — Show Results App (Login Page)
-![Show Results login page](./images/08-show-results-login.png)
+### 08 — Show Results App
 
-**Must show:** `http://localhost:5003/` login form + metric dropdown.
+![alt text](./images/08-view-metrics.png)
 
----
+### 09 — Show Results App (Invalid Credentials)
 
-### 09 — Show Results App (Valid Login)
-![Show Results valid login](./images/09-show-results-valid.png)
+![alt text](./images/09-view-metrics-failed.png)
 
-**Must show:** analytics displayed (min/max/avg/count/updated_at).
+### 10 — Show Results App (Valid Credentials & Stats)
 
----
-
-### 10 — Show Results App (Invalid Login)
-![Show Results invalid login](./images/10-show-results-invalid.png)
-
-**Must show:** red error message for invalid credentials.
+![alt text](./images/10-view-metrics-success.png)
 
