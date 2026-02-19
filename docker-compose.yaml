@@ -1,0 +1,111 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: project1-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root-passwd
+      MYSQL_DATABASE: projectdb
+      MYSQL_USER: project-user
+      MYSQL_PASSWORD: project-passwd
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot-passwd"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - app-net
+
+  mongo:
+    image: mongo:7
+    container_name: project1-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - app-net
+
+  auth_service:
+    build: ./auth_service
+    container_name: project1-auth
+    ports:
+      - "5001:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - app-net
+
+  enter_data_app:
+    build: ./enter_data_app
+    container_name: project1-enter
+    ports:
+      - "5002:5000"
+    environment:
+      AUTH_URL: http://auth_service:5000/validate
+      MYSQL_HOST: mysql
+      MYSQL_DB: projectdb
+      MYSQL_USER: project-user
+      MYSQL_PASSWORD: project-passwd
+    depends_on:
+      mysql:
+        condition: service_healthy
+      auth_service:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  analytics_service:
+    build: ./analytics_service
+    container_name: project1-analytics
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_DB: projectdb
+      MYSQL_USER: project-user
+      MYSQL_PASSWORD: project-passwd
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: projectdb
+      INTERVAL: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  show_results_app:
+    build: ./show_results_app
+    container_name: project1-show-results
+    ports:
+      - "5003:3000"
+    environment:
+      AUTH_SERVICE_URL: http://auth_service:5000/validate
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB_NAME: projectdb
+      MONGO_COLLECTION_NAME: analytics
+    depends_on:
+      auth_service:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - app-net
+
+volumes:
+  mysql_data:
+  mongo_data:
+
+networks:
+  app-net:
+    driver: bridge
